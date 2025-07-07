@@ -3,6 +3,7 @@
 library(ASySD)
 library(tidyverse)
 library(rcrossref)
+library(stringr)
 
 # add evaluation name here
 evaluation_name <- "SR1_elicit"
@@ -68,7 +69,7 @@ original_search_asysd <- original_search %>%
     number = '',
     isbn = '',
     label = ifelse(StudyId %in% original_ft_exclude$StudyId, 'original_ft_exclude',
-                   ifelse(StudyId%in% original_Tiab_include, 'original_Tiab_include', 'original_Tiab_exclude')),
+                   ifelse(StudyId%in% original_Tiab_include$StudyId, 'original_ft_include', 'original_Tiab_exclude')),
     source = 'original')%>%
   select(author = Authors,
          year = Year,
@@ -101,10 +102,12 @@ manual_review <- manual_dedup_shiny(results$manual_dedup)
 
 # Complete deduplication
 final_result <- dedup_citations_add_manual(results$unique, additional_pairs = manual_review)
+final_result <- final_result%>%
+  mutate(label = str_replace_all(label, 'original_Tiab_include', 'original_ft_include'))
 
 overlap <- filter(final_result, grepl(',', record_ids))
 
-write_citations(final_result, type = 'csv', paste0('output/', evaluation_name, '.csv'))
+write_citations(final_result, type = 'csv', paste0('output/', evaluation_name, '_search_screen.csv'))
 
 #write results out
 write.csv(overlap, paste0('output/overlapping_citations_', evaluation_name, '.csv'), row.names=FALSE)
